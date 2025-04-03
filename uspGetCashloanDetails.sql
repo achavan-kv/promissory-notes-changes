@@ -1,4 +1,10 @@
-Alter PROCEDURE uspGetCashloanDetails
+IF OBJECT_ID('dbo.uspGetCashloanDetails', 'P') IS NOT NULL
+BEGIN
+    DROP PROCEDURE dbo.uspGetCashloanDetails;
+END
+GO
+	
+CREATE PROCEDURE dbo.uspGetCashloanDetails
     @CustId VARCHAR(20),
     @AcctNo VARCHAR(12),
 	@return INT OUTPUT
