@@ -1,32 +1,22 @@
-using System;
-using System.Collections;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Web;
-using System.Web.SessionState;
-using System.Web.UI;
-using System.Web.UI.WebControls;
-using System.Web.UI.HtmlControls;
-using STL.BLL;
-using STL.DAL;
-using STL.Common;
-using STL.Common.Constants.TableNames;
-using System.Xml;
-using STL.Common.Constants.Elements;
-using System.Threading;
-using System.Globalization;
-using STL.Common.Constants.ColumnNames;
-using System.Diagnostics;
-using STL.Common.Constants.AccountTypes;
-using STL.Common.Constants.Tags;
-using STL.Common.Constants.ItemTypes;
-using System.Configuration;
-using STL.Common.Constants.StoreInfo;
 using Blue.Cosacs.Repositories;
 using Blue.Cosacs.Shared;
-using Blue.Cosacs;
-using System.Collections.Generic;
+using STL.BLL;
+using STL.Common;
+using STL.Common.Constants.AccountTypes;
+using STL.Common.Constants.ColumnNames;
+using STL.Common.Constants.Elements;
+using STL.Common.Constants.ItemTypes;
+using STL.Common.Constants.TableNames;
+using STL.Common.Constants.Tags;
+using STL.DAL;
+using System;
+using System.Configuration;
+using System.Data;
+using System.Globalization;
+using System.Threading;
+using System.Xml;
+
+
 
 namespace STL.WS
 {
@@ -83,8 +73,6 @@ namespace STL.WS
         private decimal Maxterm = 0;//kedar
         private decimal MonthlyAdminCharge = 0;
         private decimal Adminchg = 0;
-        private DCashloan cashloan = null;
-        private DataSet dsCashLoan = null;
 
         NumberFormatInfo LocalFormat = null;
 
@@ -173,7 +161,6 @@ namespace STL.WS
             if (loan != null)
             {
                 header.AppendChild(axml.CreateNode("LOANAMOUNT", loan.LoanAmount.Value.ToString(DecimalPlaces, LocalFormat)));
-                header.AppendChild(axml.CreateNode("LOANAMOUNTWORDS", NumberToWords(loan.LoanAmount.Value, "B")));
             }
 
             DBranch dbranch = new DBranch();
@@ -346,7 +333,6 @@ namespace STL.WS
             if ((bool)Country[CountryParameterNames.CL_Amortized])
             {
                 footer.AppendChild(axml.CreateNode("ANNUALINTERESTRATE", ServicePCent.ToString((string)Country[CountryParameterNames.ServicePrintDP]) + "%"));
-                footer.AppendChild(axml.CreateNode("INTERESTRATEWORD", NumberToWords(ServicePCent, CountryCode, false)));
                 footer.AppendChild(axml.CreateNode("MONTHLYINTERESTRATE", (ServicePCent / 12).ToString((string)Country[CountryParameterNames.ServicePrintDP]) + "%"));
                 footer.AppendChild(axml.CreateNode("ANNUALADMINRATE", AdminPCent.ToString((string)Country[CountryParameterNames.ServicePrintDP]) + "%"));
                 footer.AppendChild(axml.CreateNode("MONTHLYADMINRATE", (AdminPCent / 12).ToString((string)Country[CountryParameterNames.ServicePrintDP]) + "%"));
@@ -357,15 +343,12 @@ namespace STL.WS
                 {
                     case "A":
                         footer.AppendChild(axml.CreateNode("INTERESTRATE", ServicePCent.ToString((string)Country[CountryParameterNames.ServicePrintDP]) + "%"));
-                        footer.AppendChild(axml.CreateNode("INTERESTRATEWORD", NumberToWords(ServicePCent, CountryCode, false)));
                         break;
                     case "M":
                         footer.AppendChild(axml.CreateNode("INTERESTRATE", CalculateMonthlyInterest(ServicePCent).ToString((string)Country[CountryParameterNames.ServicePrintDP]) + "%"));
-                        footer.AppendChild(axml.CreateNode("INTERESTRATEWORD", NumberToWords(CalculateMonthlyInterest(ServicePCent), CountryCode, false)));
                         break;
                     case "L":
                         footer.AppendChild(axml.CreateNode("INTERESTRATE", (ServicePCent / 12).ToString((string)Country[CountryParameterNames.ServicePrintDP]) + "%"));
-                        footer.AppendChild(axml.CreateNode("INTERESTRATEWORD", NumberToWords(ServicePCent / 12, CountryCode, false)));
                         break;
                     default:
                         break;
@@ -388,23 +371,6 @@ namespace STL.WS
             decimal arm = CalculateAnnualPercentageRate(Total, srvcharge, Convert.ToDouble(InstalNo) + 1);
 
             footer.AppendChild(axml.CreateNode("APR", decimal.Round(arm * 100, 2).ToString()));
-
-            //new code SP
-            footer.AppendChild(axml.CreateNode("COUNTRYCODE", CountryCode));
-
-            footer.AppendChild(axml.CreateNode("OCCUPATION", dsCashLoan.Tables[0].Rows[0]["Occupation"]));
-            footer.AppendChild(axml.CreateNode("LOANAGREEMENTDATE", dsCashLoan.Tables[0].Rows[0]["DateAgrmt"]));
-            footer.AppendChild(axml.CreateNode("ISCOMPANY", dsCashLoan.Tables[0].Rows[0]["IsCompany"]));
-            footer.AppendChild(axml.CreateNode("DOCUMENTTYPE", dsCashLoan.Tables[0].Rows[0]["DocumentType"]));
-            footer.AppendChild(axml.CreateNode("DAILYLATEINTEREST", dsCashLoan.Tables[0].Rows[0]["DailyLateInterest"]));
-            footer.AppendChild(axml.CreateNode("LATEFEE", dsCashLoan.Tables[0].Rows[0]["LateFee"]));
-            footer.AppendChild(axml.CreateNode("PROCESSINGFEE", dsCashLoan.Tables[0].Rows[0]["ProcessingFee"]));
-            footer.AppendChild(axml.CreateNode("INSURANCECOMPANYNAME", dsCashLoan.Tables[0].Rows[0]["InsuranceCompany"]));
-            footer.AppendChild(axml.CreateNode("POLICYNUMBER", dsCashLoan.Tables[0].Rows[0]["PolicyNumber"]));
-            footer.AppendChild(axml.CreateNode("POLICYPREMINUMPERCENTAGE", dsCashLoan.Tables[0].Rows[0]["PolicyPreminumPercentage"]));
-            footer.AppendChild(axml.CreateNode("LOANSTARTDATE", dsCashLoan.Tables[0].Rows[0]["LoanStartDate"]));
-            footer.AppendChild(axml.CreateNode("TOTALINTEREST", dsCashLoan.Tables[0].Rows[0]["TotalInterest"]));
-            //_________SP
 
             return footer;
         }
@@ -621,10 +587,6 @@ namespace STL.WS
                 }
 
                 #region Retrieve all the required data
-
-                cashloan = new DCashloan();
-                dsCashLoan = cashloan.GetCashLoanDetails(CustomerID, AccountNo);
-
                 //Set the culture for currency formatting
                 Thread.CurrentThread.CurrentCulture = new CultureInfo(Culture);
 
@@ -989,124 +951,5 @@ namespace STL.WS
         {
         }
         #endregion
-
-        private string NumberToWords(decimal number, string currencyCode, bool isAmount = true)
-        {
-            if (isAmount)
-            {
-                var currencyMap = new Dictionary<string, CurrencyInfo>
-            {
-                { "B", new CurrencyInfo("Barbados Dollar", "Cent") },
-                { "Default", new CurrencyInfo("Dollar", "Cent") }
-            };
-
-                if (!currencyMap.ContainsKey(currencyCode))
-                    currencyCode = "Default";
-
-                CurrencyInfo currency = currencyMap[currencyCode];
-
-                if (number == 0)
-                    return "Zero " + currency.UnitName;
-
-                long dollars = (long)Math.Floor(number);
-                int cents = (int)((number - dollars) * 100);
-
-                string words = NumberToWords(dollars) + currency.UnitName + (dollars != 1 ? "s" : "");
-
-                if (cents > 0)
-                {
-                    words += " and " + NumberToWords(cents) + currency.SubunitName + (cents != 1 ? "s" : "");
-                }
-
-                return words;
-            }
-            else
-            {
-                if (number == 0)
-                    return "Zero";
-
-                long whole = (long)Math.Floor(number);
-                int fraction = (int)Math.Round((number - whole) * 100);
-
-                string words = NumberToWords(whole);
-
-                if (fraction > 0)
-                {
-                    words += " and " + NumberToWords(fraction) + " Hundredths";
-                }
-
-                return words;
-            }
-        }
-
-        private string NumberToWords(long number)
-        {
-            if (number == 0)
-                return "";
-
-            if (number < 0)
-                return "minus " + NumberToWords(Math.Abs(number));
-
-            string[] unitsMap = {
-                                 "Zero", "One", "Two", "Three", "Four", "Five", "Six",
-                                 "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve",
-                                 "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen",
-                                 "Eighteen", "Nineteen"
-            };
-
-            string[] tensMap ={
-                "Zero", "Ten", "Twenty", "Thirty", "Forty", "Fifty",
-                "Sixty", "Seventy", "Eighty", "Ninety"
-            };
-
-            string words = "";
-
-            if ((number / 1000000) > 0)
-            {
-                words += NumberToWords(number / 1000000) + " Million ";
-                number %= 1000000;
-            }
-
-            if ((number / 1000) > 0)
-            {
-                words += NumberToWords(number / 1000) + " Thousand ";
-                number %= 1000;
-            }
-
-            if ((number / 100) > 0)
-            {
-                words += NumberToWords(number / 100) + " Hundred ";
-                number %= 100;
-            }
-
-            if (number > 0)
-            {
-                if (words != "")
-                    words += "and ";
-
-                if (number < 20)
-                    words += unitsMap[number];
-                else
-                {
-                    words += tensMap[number / 10];
-                    if ((number % 10) > 0)
-                        words += "-" + unitsMap[number % 10];
-                }
-            }
-
-            return words.Trim();
-        }
-
-        public class CurrencyInfo
-        {
-            public string UnitName { get; set; }
-            public string SubunitName { get; set; }
-
-            public CurrencyInfo(string unit, string subunit)
-            {
-                UnitName = unit;
-                SubunitName = subunit;
-            }
-        }
     }
 }
