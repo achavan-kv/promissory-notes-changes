@@ -224,7 +224,7 @@ namespace STL.WS
                             }
                             srvcharge = (decimal)row["Service Charge"];
                             footer.AppendChild(axml.CreateNode("DT", srvcharge.ToString(DecimalPlaces, LocalFormat)));
-                            InstalNo = Convert.ToInt16(row["instalno"]) - 1;
+                            InstalNo = Convert.ToInt16(row["instalno"]);
                             InstalNo -= PaymentHolidaysMax;
 
                             //instaltot = Total + srvcharge;
@@ -235,8 +235,10 @@ namespace STL.WS
                             string instalments = this.CreateInstalments(row);
 
                             footer.AppendChild(axml.CreateNode("FIRSTINST", ((decimal)row["Instalment Amount"]).ToString(DecimalPlaces, LocalFormat)));
+                            footer.AppendChild(axml.CreateNode("FIRSTINSTWORD", NumberToWords(((decimal)row["Instalment Amount"]), CountryCode)));
                             footer.AppendChild(axml.CreateNode("FINALINST", ((decimal)row["Final Instalment"]).ToString(DecimalPlaces, LocalFormat)));
                             footer.AppendChild(axml.CreateNode("INSTALNO", InstalNo.ToString()));
+                            footer.AppendChild(axml.CreateNode("INSTALNOWORD", NumberToWords(InstalNo, CountryCode, false)));
                             footer.AppendChild(axml.CreateNode("INSTALMENTS", instalments));
 
                             DataTable InstPlan;
@@ -382,17 +384,21 @@ namespace STL.WS
             footer.AppendChild(axml.CreateNode("COUNTRYCODE", CountryCode));
 
             footer.AppendChild(axml.CreateNode("OCCUPATION", dsCashLoan.Tables[0].Rows[0]["Occupation"]));
-            footer.AppendChild(axml.CreateNode("LOANAGREEMENTDATE", dsCashLoan.Tables[0].Rows[0]["DateAgrmt"]));
+            footer.AppendChild(axml.CreateNode("LOANAGREEMENTDATE", Convert.ToDateTime(dsCashLoan.Tables[0].Rows[0]["DateAgrmt"]).ToString("dd/MM/yyyy")));
             footer.AppendChild(axml.CreateNode("ISCOMPANY", dsCashLoan.Tables[0].Rows[0]["IsCompany"]));
+            footer.AppendChild(axml.CreateNode("DOCUMENTNUMBER", dsCashLoan.Tables[0].Rows[0]["DocumentNumber1"]));
             footer.AppendChild(axml.CreateNode("DOCUMENTTYPE", dsCashLoan.Tables[0].Rows[0]["DocumentType"]));
             footer.AppendChild(axml.CreateNode("DAILYLATEINTEREST", dsCashLoan.Tables[0].Rows[0]["DailyLateInterest"]));
             footer.AppendChild(axml.CreateNode("LATEFEE", dsCashLoan.Tables[0].Rows[0]["LateFee"]));
             footer.AppendChild(axml.CreateNode("PROCESSINGFEE", dsCashLoan.Tables[0].Rows[0]["ProcessingFee"]));
+            footer.AppendChild(axml.CreateNode("PROCESSINGFEEWORD", dsCashLoan.Tables[0].Rows[0]["ProcessingFee"])); //NumberToWords((decimal)dsCashLoan.Tables[0].Rows[0]["ProcessingFee"], CountryCode))
             footer.AppendChild(axml.CreateNode("INSURANCECOMPANYNAME", dsCashLoan.Tables[0].Rows[0]["InsuranceCompany"]));
             footer.AppendChild(axml.CreateNode("POLICYNUMBER", dsCashLoan.Tables[0].Rows[0]["PolicyNumber"]));
             footer.AppendChild(axml.CreateNode("POLICYPREMINUMPERCENTAGE", dsCashLoan.Tables[0].Rows[0]["PolicyPreminumPercentage"]));
             footer.AppendChild(axml.CreateNode("LOANSTARTDATE", dsCashLoan.Tables[0].Rows[0]["LoanStartDate"]));
+            footer.AppendChild(axml.CreateNode("TOTALCOSTOFLOAN", dsCashLoan.Tables[0].Rows[0]["TotalCostofLoan"]));
             footer.AppendChild(axml.CreateNode("TOTALINTEREST", dsCashLoan.Tables[0].Rows[0]["TotalInterest"]));
+
             //_________SP
 
             return footer;
@@ -984,10 +990,10 @@ namespace STL.WS
             if (isAmount)
             {
                 var currencyMap = new Dictionary<string, CurrencyInfo>
-            {
-                { "B", new CurrencyInfo("Barbados Dollar", "Cent") },
-                { "Default", new CurrencyInfo("Dollar", "Cent") }
-            };
+                {
+                    { "B", new CurrencyInfo("Barbados Dollar", "Cent") },
+                    { "Default", new CurrencyInfo("Dollar", "Cent") }
+                };
 
                 if (!currencyMap.ContainsKey(currencyCode))
                     currencyCode = "Default";
@@ -1000,11 +1006,11 @@ namespace STL.WS
                 long dollars = (long)Math.Floor(number);
                 int cents = (int)((number - dollars) * 100);
 
-                string words = NumberToWords(dollars) + currency.UnitName + (dollars != 1 ? "s" : "");
+                string words = NumberToWords(dollars) + " " + currency.UnitName + (dollars != 1 ? "s" : "");
 
                 if (cents > 0)
                 {
-                    words += " and " + NumberToWords(cents) + currency.SubunitName + (cents != 1 ? "s" : "");
+                    words += " and " + NumberToWords(cents) + " " + currency.SubunitName + (cents != 1 ? "s" : "");
                 }
 
                 return words;
